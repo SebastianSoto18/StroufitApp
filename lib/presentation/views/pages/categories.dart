@@ -102,16 +102,54 @@ class Categories extends ConsumerWidget {
                   );
                 }
 
-                return ListView.separated(
-                  itemCount: categories.length,
-                  separatorBuilder: (_, __) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final category = categories[index];
-                    return ListTile(
-                      title: Text(category.name),
-                      leading: const Icon(Icons.category_outlined),
-                    );
-                  },
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) {
+                              return CreateCategoryForm(
+                                onSubmit: (name) {
+                                  Future(() async {
+                                    try{
+                                      await insertCategory.execute(name);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Categoría "$name" creada exitosamente')),
+                                      );
+                                      ref.invalidate(categoryListProvider);
+                                    }catch(e) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Error al crear la categoría: $e')),
+                                      );
+                                    }
+                                  });
+                                },
+                              );
+                            },
+                          );
+                        },
+                        child: const Text('Agregar categoría'),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: categories.length,
+                        separatorBuilder: (_, __) => const Divider(),
+                        itemBuilder: (context, index) {
+                          final category = categories[index];
+                          return ListTile(
+                            title: Text(category.name),
+                            leading: const Icon(Icons.category_outlined),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
