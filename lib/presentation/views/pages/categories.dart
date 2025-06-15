@@ -132,7 +132,14 @@ class Categories extends ConsumerWidget {
                             },
                           );
                         },
-                        child: const Text('Agregar categoría'),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Text('Agregar categoría', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+                            SizedBox(width: 8),
+                            Icon(Icons.add, color: Colors.white,),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
