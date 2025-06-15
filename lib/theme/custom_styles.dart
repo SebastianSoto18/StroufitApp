@@ -20,6 +20,8 @@ final ButtonStyle acceptButtonStyle = ElevatedButton.styleFrom(
     fontWeight: FontWeight.bold,
     fontSize: 16,
   ),
+  disabledBackgroundColor: tertiary.withOpacity(0.5),
+  disabledForegroundColor: Colors.white.withOpacity(0.5),
   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
   shape: RoundedRectangleBorder(
     borderRadius: BorderRadius.circular(8),
