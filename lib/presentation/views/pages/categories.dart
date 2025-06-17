@@ -2,13 +2,16 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:another_flushbar/flushbar.dart';
+import 'package:stroufitapp/domain/helpers/category_helpers.dart';
 import 'package:stroufitapp/domain/use_cases/categories/createCategory.dart';
 
 import '../../../data/db/database.dart';
+import '../../../domain/entities/category.dart';
 import '../../../providers/category_provider.dart';
 import '../../../theme/custom_styles.dart';
 import '../../../theme/theme.dart';
 import '../../widgets/create_category_form.dart';
+import '../../widgets/edit_category_form.dart';
 
 class Categories extends ConsumerWidget {
   const Categories({super.key});
@@ -138,6 +141,7 @@ class Categories extends ConsumerWidget {
                                     onSelected: (value) {
                                       if (value == 'edit') {
                                         // Acción de editar
+                                        _showEditCategoryDialog(context, ref, category);
                                       } else if (value == 'delete') {
                                         // Acción de eliminar
                                         showDialog(
@@ -258,4 +262,49 @@ class Categories extends ConsumerWidget {
       },
     );
   }
+
+  void _showEditCategoryDialog(BuildContext context, WidgetRef ref, CategoryEntity category) {
+    final updateCategory = ref.read(updateCategoryUseCaseProvider);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return EditCategoryForm(
+          category: category,
+          onSubmit: (newName) async {
+            try {
+              final updated = category.copyWith(name: newName); // Asume que tienes copyWith
+              await updateCategory.execute(updated);
+              ref.invalidate(categoryListProvider);
+
+              Flushbar(
+                message: 'Categoría actualizada exitosamente',
+                icon: const Icon(Icons.check_circle, color: Colors.white),
+                duration: const Duration(seconds: 3),
+                flushbarPosition: FlushbarPosition.TOP,
+                backgroundColor: AppTheme.completeNotification,
+                borderRadius: BorderRadius.circular(8),
+                margin: const EdgeInsets.all(12),
+                animationDuration: const Duration(milliseconds: 400),
+                messageColor: Colors.white,
+              ).show(context);
+            } catch (_) {
+              Flushbar(
+                message: 'Error al actualizar',
+                icon: const Icon(Icons.error_outline, color: Colors.white),
+                duration: const Duration(seconds: 4),
+                flushbarPosition: FlushbarPosition.TOP,
+                backgroundColor: AppTheme.errorNotification,
+                borderRadius: BorderRadius.circular(8),
+                margin: const EdgeInsets.all(12),
+                animationDuration: const Duration(milliseconds: 400),
+                messageColor: Colors.white,
+              ).show(context);
+            }
+          },
+        );
+      },
+    );
+  }
+
 }

@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:stroufitapp/data/db/database.dart';
 
 import '../../../domain/entities/category.dart';
@@ -39,4 +40,15 @@ class CategoryRepositoryImpl implements CategoryRepository {
       throw e;
     }
   }
+
+  @override
+  Future<void> updateCategory(CategoryEntity category) async {
+    final companion = CategoriesCompanion(
+      categoryId: Value(category.categoryId),
+      name: Value(category.name),
+      isActive: Value(category.isActive),
+    );
+    await _categoryDao.updateCategory(companion);
+  }
+
 }

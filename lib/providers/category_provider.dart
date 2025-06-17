@@ -10,6 +10,7 @@ import '../data/db/database.dart';
 import '../data/db/repositories/category_repositoy_impl.dart';
 import '../domain/use_cases/categories/deleteCategory.dart';
 import '../domain/use_cases/categories/getAllCategories.dart';
+import '../domain/use_cases/categories/updateCategory.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   return AppDatabase();
@@ -74,6 +75,11 @@ final softDeleteCategoryProvider = FutureProvider.family<void, int>((ref, id) as
   final delete = ref.watch(softDeleteCategoryUseCaseProvider);
   await delete.execute(id);
   ref.invalidate(categoryListProvider);
+});
+
+final updateCategoryUseCaseProvider = Provider((ref) {
+  final repository = ref.watch(categoryRepositoryProvider);
+  return UpdateCategory(repository);
 });
 
 
