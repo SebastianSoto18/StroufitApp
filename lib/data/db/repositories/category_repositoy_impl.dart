@@ -13,7 +13,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
   @override
   Future<List<CategoryEntity>> getAllCategories() async {
     final categories = await _categoryDao.getAllCategories();
-    return categories.map((c) =>
+    return categories.where((c) => c.isActive).map((c) =>
         CategoryEntity(categoryId: c.categoryId,
             name: c.name,
             createdAt: c.createdAt,
@@ -25,9 +25,18 @@ class CategoryRepositoryImpl implements CategoryRepository {
     try {
       return _categoryDao.insertCategory(category);
     } catch (e) {
-
       print('Error inserting category: $e');
       throw e;
     }
   }
+
+  @override
+  Future<void> softDeleteCategory(int id) {
+    try {
+      return _categoryDao.softDeleteCategory(id);
+    } catch (e) {
+      print('Error soft deleting category: $e');
+      throw e;
+    }
   }
+}

@@ -9,6 +9,8 @@ class AppTheme {
   static const Color textTittle = Color(0xFF444444);
   static const Color textSubTittle = Color(0xFF777777);
   static const Color textPrimary = Color(0xFF838383);
+  static const Color completeNotification = Color(0xFF538F76);
+  static const Color errorNotification = Color(0xFF8F5353);
 
   static ThemeData get lightTheme {
     return ThemeData(

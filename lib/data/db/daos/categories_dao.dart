@@ -20,4 +20,11 @@ class CategoryDao extends DatabaseAccessor<AppDatabase> with _$CategoryDaoMixin 
   Future<void> insertCategory(CategoriesCompanion category) {
     return into(categories).insert(category);
   }
+
+  Future<void> softDeleteCategory(int id) async {
+    await (update(categories)..where((tbl) => tbl.categoryId.equals(id))).write(
+      const CategoriesCompanion(isActive: Value(false)),
+    );
+  }
+
 }
