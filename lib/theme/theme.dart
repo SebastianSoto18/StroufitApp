@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   static const Color primary = Color(0xFFC9C9FF);
@@ -8,13 +9,15 @@ class AppTheme {
   static const Color textTittle = Color(0xFF444444);
   static const Color textSubTittle = Color(0xFF777777);
   static const Color textPrimary = Color(0xFF838383);
+  static const Color completeNotification = Color(0xFF538F76);
+  static const Color errorNotification = Color(0xFF8F5353);
 
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: background,
+      scaffoldBackgroundColor: Colors.white,
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: AppTheme.background,
+        backgroundColor: Color(0xFFFEFCFF),
         selectedItemColor: AppTheme.primary,
         unselectedItemColor: AppTheme.textSubTittle,
         selectedIconTheme: IconThemeData(size: 30),
@@ -32,6 +35,41 @@ class AppTheme {
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
       ),
+    textTheme: TextTheme(
+    titleLarge: GoogleFonts.poppins(
+    fontSize: 35,
+    fontWeight: FontWeight.bold,
+    color: AppTheme.textTittle,
+    ),
+        titleMedium: GoogleFonts.poppins(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: AppTheme.textSubTittle,
+          ),
+    ),
+
+
+        elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+    backgroundColor: AppTheme.primary,
+    foregroundColor: Colors.white,
+    textStyle: const TextStyle(
+    fontWeight: FontWeight.bold,
+      fontFamily: 'Poppins',
+    fontSize: 16,
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(12),
+    ),
+    ),
+    ),
+    dialogTheme: DialogTheme(
+    backgroundColor: Colors.white,
+    elevation: 6,
+    shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(20),
+    ),),
     );
   }
 }
