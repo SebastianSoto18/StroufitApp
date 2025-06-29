@@ -55,16 +55,17 @@ final filteredCategoryListProvider = Provider<List<CategoryEntity>>((ref) {
 
   return asyncCategories.maybeWhen(
     data: (entities) {
-          entities
+      final filtered = entities
           .where((e) => e.name.toLowerCase().contains(query))
           .toList();
 
-          entities.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-          return entities;
+      filtered.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      return filtered;
     },
     orElse: () => [],
   );
 });
+
 
 final softDeleteCategoryUseCaseProvider = Provider<SoftDeleteCategory>((ref) {
   final repository = ref.watch(categoryRepositoryProvider);

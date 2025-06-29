@@ -5,7 +5,6 @@ import 'package:another_flushbar/flushbar.dart';
 import 'package:stroufitapp/domain/helpers/category_helpers.dart';
 import 'package:stroufitapp/domain/use_cases/categories/createCategory.dart';
 
-import '../../../data/db/database.dart';
 import '../../../domain/entities/category.dart';
 import '../../../providers/category_provider.dart';
 import '../../../theme/custom_styles.dart';
