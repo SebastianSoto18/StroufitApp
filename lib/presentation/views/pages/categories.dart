@@ -9,6 +9,7 @@ import '../../../domain/entities/category.dart';
 import '../../../providers/category_provider.dart';
 import '../../../theme/custom_styles.dart';
 import '../../../theme/theme.dart';
+import '../../widgets/category_bottom_sheet.dart';
 import '../../widgets/create_category_form.dart';
 import '../../widgets/edit_category_form.dart';
 
@@ -119,98 +120,64 @@ class Categories extends ConsumerWidget {
                         separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final category = filteredCategories[index];
-                          return Card(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: 2,
-                            color: Colors.white,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const SizedBox(width: 8),
-                                      Text(category.name, style: Theme.of(context).textTheme.titleMedium),
-                                    ],
-                                  ),
-                                  PopupMenuButton<String>(
-                                    color: Colors.white,
-                                    icon: const Icon(Icons.more_vert),
-                                    onSelected: (value) {
-                                      if (value == 'edit') {
-                                        // Acción de editar
-                                        _showEditCategoryDialog(context, ref, category);
-                                      } else if (value == 'delete') {
-                                        // Acción de eliminar
-                                        showDialog(
-                                          context: context,
-                                          builder: (context) {
-                                            return AlertDialog(
-                                              title: const Text('Eliminar categoría', style: TextStyle(fontFamily: 'Poppins')),
-
-                                              content: Text('¿Estás seguro de que quieres eliminar "${category.name}"?'),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () => Navigator.of(context).pop(),
-                                                  style: cancelButtonStyle,
-                                                  child: const Text('Cancelar'),
-                                                ),
-                                                ElevatedButton(
-                                                  onPressed: () {
-                                                    ref.read(softDeleteCategoryProvider(category.categoryId));
-                                                    Future.delayed(Duration.zero, () {
-                                                      Flushbar(
-                                                        message: 'Categoría eliminada exitosamente',
-                                                        icon: const Icon(Icons.check_circle, color: Colors.white),
-                                                        duration: const Duration(seconds: 3),
-                                                        flushbarPosition: FlushbarPosition.TOP,
-                                                        backgroundColor: AppTheme.completeNotification,
-                                                        borderRadius: BorderRadius.circular(8),
-                                                        margin: const EdgeInsets.all(12),
-                                                        animationDuration: const Duration(milliseconds: 400),
-                                                        messageColor: Colors.white,
-                                                      ).show(context);
-                                                    });
-                                                    Navigator.of(context).pop();
-                                                  },
-                                                  style: acceptButtonStyle,
-                                                  child: const Text('Eliminar'),
-                                                ),
-                                              ],
-                                            );
-                                          },
-                                        );
-                                      }
-                                    },
-                                    itemBuilder: (context) => [
-                                      const PopupMenuItem(
-                                        value: 'edit',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.edit, color: Colors.blue),
-                                            SizedBox(width: 8),
-                                            Text('Editar', style: TextStyle(fontFamily: 'Poppins')),
-                                          ],
+                          return InkWell(
+                            onTap: () => _openCategoryBottomSheet(context, category), // ← Aquí va la línea
+                            borderRadius: BorderRadius.circular(12),
+                            child: Card(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 2,
+                              color: Colors.white,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const SizedBox(width: 8),
+                                        Text(category.name, style: Theme.of(context).textTheme.titleMedium),
+                                      ],
+                                    ),
+                                    PopupMenuButton<String>(
+                                      color: Colors.white,
+                                      icon: const Icon(Icons.more_vert),
+                                      onSelected: (value) {
+                                        if (value == 'edit') {
+                                          _showEditCategoryDialog(context, ref, category);
+                                        } else if (value == 'delete') {
+                                          // tu diálogo de eliminar
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.edit, color: Colors.blue),
+                                              SizedBox(width: 8),
+                                              Text('Editar', style: TextStyle(fontFamily: 'Poppins')),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      const PopupMenuItem(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.delete, color: Colors.red),
-                                            SizedBox(width: 8),
-                                            Text('Eliminar', style: TextStyle(fontFamily: 'Poppins')),
-                                          ],
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete, color: Colors.red),
+                                              SizedBox(width: 8),
+                                              Text('Eliminar', style: TextStyle(fontFamily: 'Poppins')),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           );
                         },
+
                       ),
                     ),
                   ),
@@ -306,4 +273,16 @@ class Categories extends ConsumerWidget {
     );
   }
 
+  void _openCategoryBottomSheet(BuildContext context, CategoryEntity category) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => CategoryBottomSheet(
+        category: category
+      ),
+    );
+  }
 }
