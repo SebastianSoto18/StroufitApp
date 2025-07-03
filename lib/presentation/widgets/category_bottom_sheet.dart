@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:stroufitapp/theme/custom_styles.dart';
 import '../../domain/entities/category.dart';
+import '../../domain/helpers/foto_picker_helper.dart';
 
 class CategoryBottomSheet extends StatelessWidget {
   final CategoryEntity category;
@@ -53,7 +56,6 @@ class CategoryBottomSheet extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context);
                     _showPhotoOptions(context);
                   },
                   child: Row(
@@ -86,16 +88,16 @@ class CategoryBottomSheet extends StatelessWidget {
               leading: const Icon(Icons.photo),
               title: const Text('Seleccionar de la galería'),
               onTap: () {
-                Navigator.pop(context);
-                onPickFromGallery();
+                onPickFromGallery(context);
+                Navigator.of(context).pop();
               },
             ),
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text('Tomar foto'),
               onTap: () {
-                Navigator.pop(context);
-                onTakePhoto();
+                onTakePhoto(context);
+                Navigator.of(context).pop();
               },
             ),
           ],
@@ -105,11 +107,17 @@ class CategoryBottomSheet extends StatelessWidget {
   }
 
 
-  void onPickFromGallery() {
-    // Implementar lógica para seleccionar imagen de la galería
+  void onPickFromGallery(BuildContext context) {
+    pickMultipleImages().then((paths) {
+      if (paths.isNotEmpty) {
+  //TODO: Implementar logica para guardar las prendas y asociarlas a la categoria
+      } else {
+
+      }
+    });
   }
 
-  void onTakePhoto() {
+  void onTakePhoto(BuildContext context) {
     // Implementar lógica para tomar una foto
   }
 }

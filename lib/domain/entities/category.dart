@@ -1,6 +1,6 @@
 class CategoryEntity {
   final int categoryId;
-  final String name;
+  String name;
   final DateTime createdAt;
   final bool isActive;
   final DateTime? deletedAt;
