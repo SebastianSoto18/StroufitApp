@@ -61,7 +61,7 @@ class CategoryBottomSheet extends StatelessWidget {
                     children: const [
                       Text('Agregar prenda'),
                       SizedBox(width: 8),
-                      Icon(Icons.checkroom, color: Colors.white,),
+                      Icon(Icons.checkroom, color: Colors.white),
                     ],
                   ),
                 ),
