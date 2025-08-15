@@ -9,18 +9,24 @@ class CreateCategory {
   CreateCategory(this._categoryRepository);
 
   Future<void> execute(String name) async {
-    final category = CategoriesCompanion(
-      name: Value(name),
-      createdAt: Value(DateTime.now()),
-      isActive: Value(true),
-    );
-
     try {
-      return await _categoryRepository.insertCategory(category);
-    } catch (e) {
+      print('Creating category with name: $name');
+
+      final category = CategoriesCompanion(
+        name: Value(name),
+        createdAt: Value(DateTime.now()),
+        isActive: Value(true),
+      );
+
+      print('Category companion created successfully');
+
+      await _categoryRepository.insertCategory(category);
+
+      print('Category inserted successfully');
+    } catch (e, stackTrace) {
       print('Error creating category: $e');
-      throw e;
+      print('Stack trace: $stackTrace');
+      rethrow;
     }
   }
-
 }

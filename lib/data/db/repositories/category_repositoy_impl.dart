@@ -10,24 +10,28 @@ class CategoryRepositoryImpl implements CategoryRepository {
 
   CategoryRepositoryImpl(this._categoryDao);
 
-
   @override
   Future<List<CategoryEntity>> getAllCategories() async {
     final categories = await _categoryDao.getAllCategories();
-    return categories.where((c) => c.isActive).map((c) =>
-        CategoryEntity(categoryId: c.categoryId,
+    return categories
+        .where((c) => c.isActive)
+        .map((c) => CategoryEntity(
+            categoryId: c.categoryId,
             name: c.name,
             createdAt: c.createdAt,
-            isActive: c.isActive)).toList();
+            isActive: c.isActive))
+        .toList();
   }
 
   @override
   Future<void> insertCategory(CategoriesCompanion category) {
     try {
+      print('Repository: Inserting category: ${category.name.value}');
       return _categoryDao.insertCategory(category);
-    } catch (e) {
-      print('Error inserting category: $e');
-      throw e;
+    } catch (e, stackTrace) {
+      print('Repository: Error inserting category: $e');
+      print('Repository: Stack trace: $stackTrace');
+      rethrow;
     }
   }
 
@@ -37,7 +41,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
       return _categoryDao.softDeleteCategory(id);
     } catch (e) {
       print('Error soft deleting category: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -50,5 +54,4 @@ class CategoryRepositoryImpl implements CategoryRepository {
     );
     await _categoryDao.updateCategory(companion);
   }
-
 }
