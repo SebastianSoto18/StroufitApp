@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 const Color secondary = Color(0xFFFFB3BA);
 const Color tertiary = Color(0xFFB5EAD7);
+const Color primary = Color(0xFFC9C9FF);
 
 final ButtonStyle cancelButtonStyle = TextButton.styleFrom(
   foregroundColor: secondary,

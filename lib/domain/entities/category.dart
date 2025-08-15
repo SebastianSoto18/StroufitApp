@@ -1,9 +1,12 @@
+import '../../data/db/tables/garment_categories_table.dart';
+
 class CategoryEntity {
   final int categoryId;
-  final String name;
+  String name;
   final DateTime createdAt;
   final bool isActive;
   final DateTime? deletedAt;
+  final List<GarmentCategories>? garmentCategories;
 
   CategoryEntity({
     required this.categoryId,
@@ -11,5 +14,6 @@ class CategoryEntity {
     required this.createdAt,
     required this.isActive,
     this.deletedAt,
+    this.garmentCategories,
   });
 }
