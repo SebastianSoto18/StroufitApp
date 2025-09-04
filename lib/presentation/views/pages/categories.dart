@@ -322,6 +322,10 @@ class Categories extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor:
+          Colors.black.withOpacity(0.5), // Fondo oscurecido con transparencia
+      barrierColor:
+          Colors.black.withOpacity(0.5), // Color de la barrera de fondo
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -335,7 +339,8 @@ class Categories extends ConsumerWidget {
     );
   }
 
-  void _showAddGarmentForm(BuildContext context, String imagePath, int categoryId) {
+  void _showAddGarmentForm(
+      BuildContext context, String imagePath, int categoryId) {
     // Mostrar AddGarmentForm usando el contexto válido del modal
     Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder(

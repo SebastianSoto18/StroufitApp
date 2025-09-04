@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:stroufitapp/domain/entities/garment_category.dart';
 import 'package:stroufitapp/providers/photo_provider.dart';
-import 'dart:io';
+import 'optimized_garment_card.dart';
 
 class GarmentGrid extends ConsumerWidget {
   final int categoryId;
@@ -24,9 +23,15 @@ class GarmentGrid extends ConsumerWidget {
                 1.0, // Cambiado a 1.0 para hacer las tarjetas más grandes
           ),
           itemCount: garmentCategories.length,
+          // Optimización: usar addAutomaticKeepAlives para mantener widgets vivos
+          addAutomaticKeepAlives: true,
+          // Optimización: usar addRepaintBoundaries para evitar repintados innecesarios
+          addRepaintBoundaries: true,
+          // Optimización: usar addSemanticIndexes para mejor accesibilidad
+          addSemanticIndexes: true,
           itemBuilder: (context, index) {
             final garmentCategory = garmentCategories[index];
-            return _GarmentCard(garmentCategory: garmentCategory);
+            return OptimizedGarmentCard(garmentCategory: garmentCategory);
           },
         );
       },
@@ -96,52 +101,21 @@ class _ErrorSkeleton extends StatelessWidget {
 class _SkeletonGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // Calcular cuántas skeleton cards mostrar basado en el tamaño de pantalla
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
+    // Número fijo de skeleton cards para evitar cálculos complejos
+    const skeletonCount = 6;
 
-    // Calcular cuántas filas caben en la pantalla
-    final cardHeight =
-        (screenWidth - 32 - 12) / 2; // Ancho de card menos padding y spacing
-    final availableHeight =
-        screenHeight * 0.5; // Altura disponible para el grid
-    final rows = (availableHeight / cardHeight).floor();
-
-    // Mostrar skeleton cards para llenar aproximadamente 2-3 filas
-    final skeletonCount = (rows * 2).clamp(4, 8);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Skeleton header
-        Padding(
-          padding: const EdgeInsets.only(left: 16, bottom: 16),
-          child: Container(
-            width: 120,
-            height: 20,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        ),
-        // Skeleton grid
-        Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.0,
-            ),
-            itemCount: skeletonCount,
-            itemBuilder: (context, index) {
-              return _SkeletonCard();
-            },
-          ),
-        ),
-      ],
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.0,
+      ),
+      itemCount: skeletonCount,
+      itemBuilder: (context, index) {
+        return _SkeletonCard();
+      },
     );
   }
 }
@@ -207,15 +181,15 @@ class _SkeletonCardState extends State<_SkeletonCard>
                       color: Colors.grey[300],
                     ),
                   ),
-                  // Efecto shimmer
+                  // Efecto shimmer simplificado
                   Transform.translate(
                     offset: Offset(
                       _shimmerAnimation.value *
-                          MediaQuery.of(context).size.width,
+                          200, // Valor fijo en lugar de MediaQuery
                       0,
                     ),
                     child: Container(
-                      width: double.infinity,
+                      width: 200, // Ancho fijo
                       height: double.infinity,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
@@ -232,54 +206,10 @@ class _SkeletonCardState extends State<_SkeletonCard>
                       ),
                     ),
                   ),
-                  // Patrón de ondas sutiles
-                  Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: RadialGradient(
-                        center: Alignment.center,
-                        radius: 0.8,
-                        colors: [
-                          Colors.grey[300]!,
-                          Colors.grey[400]!.withOpacity(0.3),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
               ),
             );
           },
-        ),
-      ),
-    );
-  }
-}
-
-class _GarmentCard extends StatelessWidget {
-  final GarmentCategoryEntity garmentCategory;
-  const _GarmentCard({required this.garmentCategory});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 3, // Aumentado el elevation
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12), // Aumentado el border radius
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: FileImage(File(garmentCategory.garment.imagePath)),
-              fit: BoxFit.cover,
-            ),
-          ),
         ),
       ),
     );
