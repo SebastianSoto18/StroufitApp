@@ -168,7 +168,8 @@ class Categories extends ConsumerWidget {
                                                 _showEditCategoryDialog(
                                                     context, ref, category);
                                               } else if (value == 'delete') {
-                                                // tu diálogo de eliminar
+                                                _showDeleteCategoryDialog(
+                                                    context, ref, category);
                                               }
                                             },
                                             itemBuilder: (context) => [
@@ -318,10 +319,143 @@ class Categories extends ConsumerWidget {
     );
   }
 
+  void _showDeleteCategoryDialog(
+      BuildContext context, WidgetRef ref, CategoryEntity category) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Eliminar Categoría'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                  '¿Estás seguro de que quieres eliminar la categoría "${category.name}"?'),
+              const SizedBox(height: 16),
+              const Text(
+                'Esta acción eliminará:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text('• La categoría'),
+              const Text('• Todas las prendas asociadas'),
+              const Text(
+                  '• Las imágenes se eliminarán gradualmente en segundo plano'),
+              const SizedBox(height: 16),
+              const Text(
+                'Los datos se eliminarán de forma segura.',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _deleteCategoryWithCascade(context, ref, category);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteCategoryWithCascade(
+      BuildContext context, WidgetRef ref, CategoryEntity category) async {
+    try {
+      print('UI: Starting cascade delete for category: ${category.name}');
+
+      // Mostrar diálogo de carga
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return WillPopScope(
+            onWillPop: () async => false,
+            child: AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text('Eliminando categoría "${category.name}"...'),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+
+      // Ejecutar eliminación en cascada directamente
+      final deleteUseCase =
+          ref.read(softDeleteCategoryWithCascadeUseCaseProvider);
+      await deleteUseCase.execute(category.categoryId);
+
+      // Invalidar la lista de categorías
+      ref.invalidate(categoryListProvider);
+
+      // Cerrar indicador de carga
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      // Mostrar mensaje de éxito
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Categoría "${category.name}" eliminada exitosamente. Las imágenes se eliminarán gradualmente.'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+
+      print('UI: Category cascade delete completed successfully');
+    } catch (e, stackTrace) {
+      print('UI: Error in cascade delete: $e');
+      print('UI: Stack trace: $stackTrace');
+
+      // Cerrar indicador de carga si está abierto
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      // Mostrar mensaje de error
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al eliminar la categoría: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
   void _openCategoryBottomSheet(BuildContext context, CategoryEntity category) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor:
+          Colors.transparent, // Fondo transparente para animación suave
+      barrierColor: Colors.black.withOpacity(0.3), // Barrera más sutil
+      elevation: 0, // Sin elevación para transición suave
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -331,17 +465,66 @@ class Categories extends ConsumerWidget {
           // Manejar la selección de imagen desde el contexto válido del modal
           _showAddGarmentForm(context, imagePath, category.categoryId);
         },
+        onGarmentAdded: () {
+          // Mostrar notificación de éxito desde el contexto correcto
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Prenda agregada exitosamente'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              margin: EdgeInsets.only(bottom: 20, left: 16, right: 16),
+            ),
+          );
+        },
+        onGarmentError: (String error) {
+          // Mostrar notificación de error desde el contexto correcto
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error al agregar la prenda: $error'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
+            ),
+          );
+        },
       ),
     );
   }
 
-  void _showAddGarmentForm(BuildContext context, String imagePath, int categoryId) {
+  void _showAddGarmentForm(
+      BuildContext context, String imagePath, int categoryId) {
     // Mostrar AddGarmentForm usando el contexto válido del modal
     Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => AddGarmentForm(
           categoryId: categoryId,
           imagePath: imagePath,
+          onSuccess: () {
+            // Mostrar notificación de éxito desde el contexto correcto
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Prenda agregada exitosamente'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+                margin: EdgeInsets.only(bottom: 20, left: 16, right: 16),
+              ),
+            );
+          },
+          onError: (String error) {
+            // Mostrar notificación de error desde el contexto correcto
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error al agregar la prenda: $error'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
+              ),
+            );
+          },
         ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);

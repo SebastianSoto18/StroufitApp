@@ -2,26 +2,45 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/helpers/foto_picker_helper.dart';
-import 'add_garment_form.dart';
+import '../../providers/garment_selection_provider.dart';
 import 'garment_grid.dart';
 
-class CategoryBottomSheet extends ConsumerWidget {
+class CategoryBottomSheet extends ConsumerStatefulWidget {
   final CategoryEntity category;
   final Function(String imagePath)?
       onImageSelected; // Callback para cuando se selecciona una imagen
+  final VoidCallback?
+      onGarmentAdded; // Callback para cuando se agrega una prenda exitosamente
+  final Function(String)?
+      onGarmentError; // Callback para errores al agregar prenda
 
   const CategoryBottomSheet({
     super.key,
     required this.category,
     this.onImageSelected,
+    this.onGarmentAdded,
+    this.onGarmentError,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CategoryBottomSheet> createState() =>
+      _CategoryBottomSheetState();
+}
+
+class _CategoryBottomSheetState extends ConsumerState<CategoryBottomSheet> {
+  // Sin controlador personalizado - usar arrastre nativo del DraggableScrollableSheet
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSelection = ref.watch(hasSelectedGarmentsProvider);
+
     return DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      minChildSize: 0.5,
-      maxChildSize: 0.9,
+      initialChildSize: 0.9, // Altura inicial (50% de la pantalla)
+      minChildSize: 0.3, // Altura mínima absoluta (30% de la pantalla)
+      maxChildSize: 0.9, // Altura máxima (90% de la pantalla)
+      snap: true, // Activar snap para posiciones definidas
+      snapSizes: const [0.5, 0.9], // Tres posiciones: mínima, media, completa
+      expand: false, // No expandir automáticamente
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
@@ -30,7 +49,22 @@ class CategoryBottomSheet extends ConsumerWidget {
           ),
           child: Column(
             children: [
-              // Header con título y botón de cerrar
+              // Indicador de arrastre en la parte superior
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: Container(
+                    width: 50,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(2.5),
+                    ),
+                  ),
+                ),
+              ),
+              // Header con título y botones
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -48,58 +82,60 @@ class CategoryBottomSheet extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      category.name,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    // Título de la categoría
+                    Expanded(
+                      child: Text(
+                        widget.category.name,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
-                    ),
+                    const SizedBox(width: 16),
+                    // Botones según el estado de selección
+                    if (hasSelection) ...[
+                      // Botón de cancelar selección
+                      TextButton(
+                        onPressed: () {
+                          ref
+                              .read(garmentSelectionProvider.notifier)
+                              .clearSelection();
+                        },
+                        child: const Text('Cancelar'),
+                      ),
+                    ] else ...[
+                      // Botón de agregar prenda
+                      ElevatedButton(
+                        onPressed: () {
+                          _showPhotoOptions(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Text('Agregar'),
+                            SizedBox(width: 4),
+                            Icon(Icons.add_a_photo,
+                                color: Colors.white, size: 18),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
-              // Contenido principal
+              // Grid de prendas que ocupa el resto del espacio disponible
               Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: EdgeInsets.zero,
-                  children: [
-                    // Botones de acción
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            _showPhotoOptions(context);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 12),
-                            backgroundColor: Theme.of(context).primaryColor,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: const [
-                              Text('Agregar prenda'),
-                              SizedBox(width: 8),
-                              Icon(Icons.add_a_photo, color: Colors.white),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Grid de prendas
-                    SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.5,
-                      child: GarmentGrid(categoryId: category.categoryId),
-                    ),
-                  ],
+                child: SizedBox(
+                  height: 400, // Altura fija para el grid
+                  child: GarmentGrid(categoryId: widget.category.categoryId),
                 ),
               ),
             ],
@@ -211,7 +247,7 @@ class CategoryBottomSheet extends ConsumerWidget {
 
   void _showAddGarmentFormDirect(String imagePath) {
     print(
-        'CategoryBottomSheet: Showing form with categoryId: ${category.categoryId}, imagePath: $imagePath');
+        'CategoryBottomSheet: Showing form with categoryId: ${widget.category.categoryId}, imagePath: $imagePath');
     if (imagePath.isEmpty) {
       print('CategoryBottomSheet: Error: imagePath is empty');
       return;
@@ -233,8 +269,8 @@ class CategoryBottomSheet extends ConsumerWidget {
 
   void _tryShowFormWithParentContext(String imagePath) {
     // Este método será llamado desde el widget padre que tiene un contexto válido
-    if (onImageSelected != null) {
-      onImageSelected!(imagePath);
+    if (widget.onImageSelected != null) {
+      widget.onImageSelected!(imagePath);
     } else {
       print(
           'CategoryBottomSheet: No callback provided, cannot show AddGarmentForm');

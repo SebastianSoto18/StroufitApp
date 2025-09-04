@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stroufitapp/providers/photo_provider.dart';
-import 'dart:io';
+import 'package:stroufitapp/domain/helpers/rembg_helper.dart';
 
 class AddGarmentForm extends ConsumerStatefulWidget {
   final int categoryId;
   final String imagePath;
-  const AddGarmentForm(
-      {super.key, required this.categoryId, required this.imagePath});
+  final VoidCallback? onSuccess;
+  final Function(String)? onError;
+
+  const AddGarmentForm({
+    super.key,
+    required this.categoryId,
+    required this.imagePath,
+    this.onSuccess,
+    this.onError,
+  });
 
   @override
   ConsumerState<AddGarmentForm> createState() => _AddGarmentFormState();
@@ -15,22 +23,104 @@ class AddGarmentForm extends ConsumerStatefulWidget {
 
 class _AddGarmentFormState extends ConsumerState<AddGarmentForm> {
   bool _isLoading = false;
+  bool _isProcessingBackground = false;
+  String _currentImagePath = '';
+  bool _rembgAvailable = false;
 
   @override
   void initState() {
     super.initState();
-    // Guardar automáticamente al abrir el formulario
+    _currentImagePath = widget.imagePath;
+    // Procesar fondo automáticamente después de verificar disponibilidad
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _saveGarment();
+      _initializeAndProcess();
     });
+  }
+
+  Future<void> _initializeAndProcess() async {
+    print('AddGarmentForm: Initializing and processing...');
+    await _checkRembgAvailability();
+    print('AddGarmentForm: Rembg available: $_rembgAvailable');
+    await _processBackgroundAutomatically();
+  }
+
+  Future<void> _checkRembgAvailability() async {
+    final isAvailable = await RembgHelper.isAvailable();
+    if (mounted) {
+      setState(() {
+        _rembgAvailable = isAvailable;
+      });
+    }
+  }
+
+  Future<void> _processBackgroundAutomatically() async {
+    print('AddGarmentForm: _processBackgroundAutomatically called');
+    print('AddGarmentForm: _isProcessingBackground: $_isProcessingBackground');
+    print('AddGarmentForm: _rembgAvailable: $_rembgAvailable');
+
+    if (_isProcessingBackground || !_rembgAvailable) {
+      // Si no está disponible, guardar directamente
+      print('AddGarmentForm: Skipping background removal, saving directly');
+      _saveGarment();
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isProcessingBackground = true;
+      });
+    }
+
+    try {
+      print('AddGarmentForm: Starting automatic background removal');
+
+      final result = await RembgHelper.removeBackground(_currentImagePath);
+
+      if (result != null && result.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _currentImagePath = result;
+          });
+        }
+
+        print('AddGarmentForm: Background removal successful: $result');
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Fondo removido automáticamente con rembg'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              margin: EdgeInsets.only(bottom: 20, left: 16, right: 16),
+            ),
+          );
+        }
+      } else {
+        print(
+            'AddGarmentForm: Background removal failed, using original image');
+      }
+    } catch (e) {
+      print('AddGarmentForm: Error removing background: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessingBackground = false;
+        });
+        // Guardar la prenda después del procesamiento
+        _saveGarment();
+      }
+    }
   }
 
   Future<void> _saveGarment() async {
     if (_isLoading) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       print('AddGarmentForm: Saving garment automatically');
@@ -41,7 +131,7 @@ class _AddGarmentFormState extends ConsumerState<AddGarmentForm> {
 
       final params = {
         'categoryId': widget.categoryId,
-        'imagePath': widget.imagePath,
+        'imagePath': _currentImagePath,
       };
 
       print('AddGarmentForm: params: $params');
@@ -57,16 +147,21 @@ class _AddGarmentFormState extends ConsumerState<AddGarmentForm> {
       if (mounted) {
         Navigator.of(context).pop();
 
-        // Mostrar notificación de éxito después de cerrar el diálogo
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Prenda agregada exitosamente'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.only(bottom: 20, left: 16, right: 16),
-          ),
-        );
+        // Usar callback para mostrar notificación desde el contexto correcto
+        if (widget.onSuccess != null) {
+          widget.onSuccess!();
+        } else {
+          // Fallback si no se proporciona callback
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Prenda agregada exitosamente'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              margin: EdgeInsets.only(bottom: 20, left: 16, right: 16),
+            ),
+          );
+        }
       }
     } catch (e) {
       print('AddGarmentForm: Error saving garment: $e');
@@ -79,16 +174,21 @@ class _AddGarmentFormState extends ConsumerState<AddGarmentForm> {
       if (mounted) {
         Navigator.of(context).pop();
 
-        // Mostrar error después de cerrar el diálogo
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al agregar la prenda: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
-          ),
-        );
+        // Usar callback para mostrar error desde el contexto correcto
+        if (widget.onError != null) {
+          widget.onError!(e.toString());
+        } else {
+          // Fallback si no se proporciona callback
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error al agregar la prenda: ${e.toString()}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
+            ),
+          );
+        }
       }
     } finally {
       if (mounted) {
@@ -103,68 +203,66 @@ class _AddGarmentFormState extends ConsumerState<AddGarmentForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Agregando Prenda'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (_isLoading) ...[
-              const CircularProgressIndicator(),
-              const SizedBox(height: 24),
-              const Text(
-                'Guardando prenda...',
-                style: TextStyle(fontSize: 18),
-              ),
-            ] else ...[
-              const Text(
-                'La prenda se guardará automáticamente',
-                style: TextStyle(fontSize: 18),
-                textAlign: TextAlign.center,
-              ),
-            ],
+            // Loader principal
+            const CircularProgressIndicator(
+              color: Colors.blue,
+              strokeWidth: 4,
+            ),
             const SizedBox(height: 32),
-            // Vista previa de la imagen
-            Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade300, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.file(
-                  File(widget.imagePath),
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey.shade200,
-                      child: const Icon(
-                        Icons.error,
-                        size: 80,
-                        color: Colors.red,
-                      ),
-                    );
-                  },
-                ),
+            // Mensaje de procesamiento
+            Text(
+              _isProcessingBackground
+                  ? 'Procesando imagen...'
+                  : 'Guardando prenda...',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
             ),
+            const SizedBox(height: 12),
+            // Mensaje secundario
+            Text(
+              _isProcessingBackground
+                  ? 'Removiendo fondo automáticamente'
+                  : 'Finalizando proceso...',
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 48),
+            // Indicador de progreso (opcional)
+            if (_isProcessingBackground)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.auto_fix_high,
+                        color: Colors.blue.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Usando inteligencia artificial',
+                      style: TextStyle(
+                        color: Colors.blue.shade700,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
