@@ -2,17 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/helpers/foto_picker_helper.dart';
+import '../../providers/garment_selection_provider.dart';
 import 'garment_grid.dart';
 
 class CategoryBottomSheet extends ConsumerStatefulWidget {
   final CategoryEntity category;
   final Function(String imagePath)?
       onImageSelected; // Callback para cuando se selecciona una imagen
+  final VoidCallback?
+      onGarmentAdded; // Callback para cuando se agrega una prenda exitosamente
+  final Function(String)?
+      onGarmentError; // Callback para errores al agregar prenda
 
   const CategoryBottomSheet({
     super.key,
     required this.category,
     this.onImageSelected,
+    this.onGarmentAdded,
+    this.onGarmentError,
   });
 
   @override
@@ -25,15 +32,14 @@ class _CategoryBottomSheetState extends ConsumerState<CategoryBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final hasSelection = ref.watch(hasSelectedGarmentsProvider);
+
     return DraggableScrollableSheet(
       initialChildSize: 0.9, // Altura inicial (50% de la pantalla)
       minChildSize: 0.3, // Altura mínima absoluta (30% de la pantalla)
       maxChildSize: 0.9, // Altura máxima (90% de la pantalla)
       snap: true, // Activar snap para posiciones definidas
-      snapSizes: const [
-        0.5,
-        0.9
-      ], // Tres posiciones: mínima, media, completa
+      snapSizes: const [0.5, 0.9], // Tres posiciones: mínima, media, completa
       expand: false, // No expandir automáticamente
       builder: (context, scrollController) {
         return Container(
@@ -58,7 +64,7 @@ class _CategoryBottomSheetState extends ConsumerState<CategoryBottomSheet> {
                   ),
                 ),
               ),
-              // Header con título y botón de cerrar
+              // Header con título y botones
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -88,27 +94,40 @@ class _CategoryBottomSheetState extends ConsumerState<CategoryBottomSheet> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    // Botón de agregar prenda
-                    ElevatedButton(
-                      onPressed: () {
-                        _showPhotoOptions(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
+                    // Botones según el estado de selección
+                    if (hasSelection) ...[
+                      // Botón de cancelar selección
+                      TextButton(
+                        onPressed: () {
+                          ref
+                              .read(garmentSelectionProvider.notifier)
+                              .clearSelection();
+                        },
+                        child: const Text('Cancelar'),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Text('Agregar'),
-                          SizedBox(width: 4),
-                          Icon(Icons.add_a_photo,
-                              color: Colors.white, size: 18),
-                        ],
+                    ] else ...[
+                      // Botón de agregar prenda
+                      ElevatedButton(
+                        onPressed: () {
+                          _showPhotoOptions(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Text('Agregar'),
+                            SizedBox(width: 4),
+                            Icon(Icons.add_a_photo,
+                                color: Colors.white, size: 18),
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),

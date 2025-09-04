@@ -1,6 +1,3 @@
-
-
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stroufitapp/data/db/daos/categories_dao.dart';
 import 'package:stroufitapp/domain/entities/category.dart';
@@ -9,6 +6,7 @@ import 'package:stroufitapp/domain/use_cases/categories/createCategory.dart';
 import '../data/db/database.dart';
 import '../data/db/repositories/category_repositoy_impl.dart';
 import '../domain/use_cases/categories/deleteCategory.dart';
+import '../domain/use_cases/categories/deleteCategoryWithCascade.dart';
 import '../domain/use_cases/categories/getAllCategories.dart';
 import '../domain/use_cases/categories/updateCategory.dart';
 
@@ -36,8 +34,8 @@ final categoryListProvider = FutureProvider<List<CategoryEntity>>((ref) async {
   return await getAllCategoriesUseCase();
 });
 
-
-final insertCategoryProvider = FutureProvider.family<void, CategoriesCompanion>((ref, category) async {
+final insertCategoryProvider =
+    FutureProvider.family<void, CategoriesCompanion>((ref, category) async {
   final repository = ref.watch(categoryRepositoryProvider);
   return await repository.insertCategory(category);
 });
@@ -55,36 +53,52 @@ final filteredCategoryListProvider = Provider<List<CategoryEntity>>((ref) {
 
   return asyncCategories.maybeWhen(
     data: (entities) {
-      final filtered = entities
-          .where((e) => e.name.toLowerCase().contains(query))
-          .toList();
+      final filtered =
+          entities.where((e) => e.name.toLowerCase().contains(query)).toList();
 
-      filtered.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      filtered
+          .sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       return filtered;
     },
     orElse: () => [],
   );
 });
 
-
 final softDeleteCategoryUseCaseProvider = Provider<SoftDeleteCategory>((ref) {
   final repository = ref.watch(categoryRepositoryProvider);
   return SoftDeleteCategory(repository);
 });
 
-final softDeleteCategoryProvider = FutureProvider.family<void, int>((ref, id) async {
+final softDeleteCategoryProvider =
+    FutureProvider.family<void, int>((ref, id) async {
   final delete = ref.watch(softDeleteCategoryUseCaseProvider);
   await delete.execute(id);
   ref.invalidate(categoryListProvider);
+});
+
+// Provider para eliminación en cascada
+final softDeleteCategoryWithCascadeUseCaseProvider =
+    Provider<SoftDeleteCategoryWithCascade>((ref) {
+  final repository = ref.watch(categoryRepositoryProvider);
+  return SoftDeleteCategoryWithCascade(repository);
+});
+
+final softDeleteCategoryWithCascadeProvider =
+    FutureProvider.family<void, int>((ref, id) async {
+  try {
+    final delete = ref.watch(softDeleteCategoryWithCascadeUseCaseProvider);
+    await delete.execute(id);
+    // Invalidar providers después de un pequeño delay para evitar problemas de renderizado
+    Future.delayed(const Duration(milliseconds: 100), () {
+      ref.invalidate(categoryListProvider);
+    });
+  } catch (e) {
+    print('Provider: Error in cascade delete: $e');
+    rethrow;
+  }
 });
 
 final updateCategoryUseCaseProvider = Provider((ref) {
   final repository = ref.watch(categoryRepositoryProvider);
   return UpdateCategory(repository);
 });
-
-
-
-
-
-

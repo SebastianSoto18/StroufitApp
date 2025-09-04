@@ -7,4 +7,5 @@ abstract class CategoryRepository {
   Future<void> insertCategory(CategoriesCompanion category);
   Future<void> softDeleteCategory(int id);
   Future<void> updateCategory(CategoryEntity category);
+  Future<List<String>> softDeleteCategoryWithCascade(int id);
 }

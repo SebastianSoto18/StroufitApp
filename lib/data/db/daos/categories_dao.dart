@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../database.dart';
 import '../tables/categories_table.dart';
+import 'garment_dao.dart';
 
 part 'categories_dao.g.dart';
 
@@ -39,5 +40,30 @@ class CategoryDao extends DatabaseAccessor<AppDatabase>
     await (update(categories)
           ..where((tbl) => tbl.categoryId.equals(category.categoryId.value)))
         .write(category);
+  }
+
+  /// Elimina una categoría y todos sus garments asociados en cascada
+  Future<List<String>> softDeleteCategoryWithCascade(int id) async {
+    try {
+      print('CategoryDAO: Starting cascade delete for category: $id');
+
+      // Crear instancia del GarmentDAO para eliminar garments
+      final garmentDao = GarmentDao(db);
+
+      // Eliminar todos los garments y garment categories de la categoría
+      final deletedImagePaths =
+          await garmentDao.softDeleteAllGarmentsByCategory(id);
+
+      // Eliminar la categoría
+      await softDeleteCategory(id);
+
+      print(
+          'CategoryDAO: Category cascade delete completed. ${deletedImagePaths.length} images will be deleted');
+      return deletedImagePaths;
+    } catch (e, stackTrace) {
+      print('CategoryDAO: Error in cascade delete: $e');
+      print('CategoryDAO: Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 }

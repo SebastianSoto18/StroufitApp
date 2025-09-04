@@ -101,4 +101,71 @@ class GarmentDao extends DatabaseAccessor<AppDatabase> with _$GarmentDaoMixin {
           isActive: const Value(false), deletedAt: Value(DateTime.now())),
     );
   }
+
+  /// Elimina en cascada todos los garment categories y garments de una categoría
+  Future<List<String>> softDeleteAllGarmentsByCategory(int categoryId) async {
+    try {
+      print('GarmentDAO: Starting cascade delete for category: $categoryId');
+
+      // Obtener todos los garment categories activos de la categoría
+      final garmentCategoriesList = await (select(garmentCategories)
+            ..where((tbl) => tbl.categoryId.equals(categoryId))
+            ..where((tbl) => tbl.isActive.equals(true)))
+          .get();
+
+      print(
+          'GarmentDAO: Found ${garmentCategoriesList.length} garment categories to delete');
+
+      List<String> deletedImagePaths = [];
+
+      for (final garmentCategory in garmentCategoriesList) {
+        // Obtener el garment asociado
+        final garment = await (select(garments)
+              ..where((tbl) => tbl.garmentId.equals(garmentCategory.garmentId))
+              ..where((tbl) => tbl.isActive.equals(true)))
+            .getSingleOrNull();
+
+        if (garment != null) {
+          // Guardar la ruta de la imagen para eliminación física
+          deletedImagePaths.add(garment.imagePath);
+
+          // Soft delete del garment
+          await softDeleteGarment(garment.garmentId);
+          print('GarmentDAO: Soft deleted garment: ${garment.garmentId}');
+        }
+
+        // Soft delete del garment category
+        await softDeleteGarmentCategory(garmentCategory.garmentCategoriesId);
+        print(
+            'GarmentDAO: Soft deleted garment category: ${garmentCategory.garmentCategoriesId}');
+      }
+
+      print(
+          'GarmentDAO: Cascade delete completed. ${deletedImagePaths.length} images will be deleted');
+      return deletedImagePaths;
+    } catch (e, stackTrace) {
+      print('GarmentDAO: Error in cascade delete: $e');
+      print('GarmentDAO: Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  /// Obtiene todos los garments marcados para eliminación (soft delete)
+  Future<List<Garment>> getDeletedGarments() async {
+    try {
+      print('GarmentDAO: Getting deleted garments');
+
+      final deletedGarments = await (select(garments)
+            ..where((tbl) => tbl.isActive.equals(false))
+            ..where((tbl) => tbl.deletedAt.isNotNull()))
+          .get();
+
+      print('GarmentDAO: Found ${deletedGarments.length} deleted garments');
+      return deletedGarments;
+    } catch (e, stackTrace) {
+      print('GarmentDAO: Error getting deleted garments: $e');
+      print('GarmentDAO: Stack trace: $stackTrace');
+      return [];
+    }
+  }
 }

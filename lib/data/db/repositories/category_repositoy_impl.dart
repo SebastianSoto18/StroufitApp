@@ -54,4 +54,16 @@ class CategoryRepositoryImpl implements CategoryRepository {
     );
     await _categoryDao.updateCategory(companion);
   }
+
+  /// Elimina una categoría y todos sus garments asociados en cascada
+  Future<List<String>> softDeleteCategoryWithCascade(int id) async {
+    try {
+      print('Repository: Starting cascade delete for category: $id');
+      return await _categoryDao.softDeleteCategoryWithCascade(id);
+    } catch (e, stackTrace) {
+      print('Repository: Error in cascade delete: $e');
+      print('Repository: Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
 }
