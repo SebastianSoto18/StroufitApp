@@ -5,7 +5,6 @@ import 'package:stroufitapp/presentation/views/pages/generate_oufit.dart';
 
 import '../../providers/navigation_provider.dart';
 
-
 class Home extends ConsumerWidget {
   const Home({super.key});
 
@@ -22,7 +21,8 @@ class Home extends ConsumerWidget {
       body: pages[currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
-        onTap: (index) => ref.read(selectedIndexProvider.notifier).state = index,
+        onTap: (index) =>
+            ref.read(selectedIndexProvider.notifier).state = index,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.category),
@@ -30,7 +30,11 @@ class Home extends ConsumerWidget {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.auto_awesome),
-            label: 'Outfits',
+            label: 'Tus outfits',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shuffle),
+            label: 'Generar outfit',
           ),
         ],
       ),
