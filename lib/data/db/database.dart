@@ -7,10 +7,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:stroufitapp/data/db/tables/categories_table.dart';
 import 'package:stroufitapp/data/db/tables/garments_table.dart';
 import 'package:stroufitapp/data/db/tables/garment_categories_table.dart';
+import 'package:stroufitapp/data/db/tables/outfits_table.dart';
+import 'package:stroufitapp/data/db/tables/outfits_garments_table.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [Categories, Garments, GarmentCategories])
+@DriftDatabase(
+    tables: [Categories, Garments, GarmentCategories, Outfits, OutfitsGarments])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection()) {
     print('Database: AppDatabase constructor called');
@@ -34,7 +37,8 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 3; // Incrementado de 2 a 3 para forzar migración
+  int get schemaVersion =>
+      7; // Incrementado de 6 a 7 para agregar outfits y outfits_garments
 
   @override
   MigrationStrategy get migration {
@@ -53,6 +57,70 @@ class AppDatabase extends _$AppDatabase {
           await m.createTable(garments);
           await m.createTable(garmentCategories);
           print('Database: New tables created successfully');
+        }
+
+        if (from < 4) {
+          print('Database: Adding isFavorite column to categories table');
+          // Agregar columna isFavorite a la tabla categories
+          await customStatement(
+              'ALTER TABLE categories ADD COLUMN is_favorite BOOLEAN NOT NULL DEFAULT 0');
+          print('Database: isFavorite column added successfully');
+        }
+
+        if (from < 5) {
+          print(
+              'Database: Adding scale and position columns to categories table');
+          // Agregar columnas de escala y posición a la tabla categories
+          await customStatement(
+              'ALTER TABLE categories ADD COLUMN scale REAL NOT NULL DEFAULT 1.0');
+          await customStatement(
+              'ALTER TABLE categories ADD COLUMN position_x REAL NOT NULL DEFAULT 0.0');
+          await customStatement(
+              'ALTER TABLE categories ADD COLUMN position_y REAL NOT NULL DEFAULT 0.0');
+          print('Database: scale and position columns added successfully');
+        }
+
+        if (from < 6) {
+          print('Database: Adding rotation column to categories table');
+          // Agregar columna de rotación a la tabla categories
+          await customStatement(
+              'ALTER TABLE categories ADD COLUMN rotation REAL NOT NULL DEFAULT 0.0');
+          print('Database: rotation column added successfully');
+        }
+
+        if (from < 7) {
+          print('Database: Creating outfits and outfits_garments tables');
+          // Crear tabla outfits
+          await customStatement('''
+            CREATE TABLE outfits (
+              outfit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT,
+              image_path TEXT NOT NULL,
+              created_at INTEGER NOT NULL,
+              deleted_at INTEGER,
+              is_active INTEGER NOT NULL DEFAULT 1
+            )
+          ''');
+
+          // Crear tabla outfits_garments
+          await customStatement('''
+            CREATE TABLE outfits_garments (
+              outfit_garment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+              outfit_id INTEGER NOT NULL,
+              garment_id INTEGER NOT NULL,
+              scale REAL NOT NULL DEFAULT 1.0,
+              position_x REAL NOT NULL DEFAULT 0.0,
+              position_y REAL NOT NULL DEFAULT 0.0,
+              rotation REAL NOT NULL DEFAULT 0.0,
+              created_at INTEGER NOT NULL,
+              deleted_at INTEGER,
+              is_active INTEGER NOT NULL DEFAULT 1,
+              FOREIGN KEY (outfit_id) REFERENCES outfits (outfit_id),
+              FOREIGN KEY (garment_id) REFERENCES garments (garment_id)
+            )
+          ''');
+          print(
+              'Database: outfits and outfits_garments tables created successfully');
         }
 
         print('Database: onUpgrade migration completed');
@@ -209,7 +277,8 @@ class AppDatabase extends _$AppDatabase {
           name TEXT NOT NULL,
           created_at DATETIME NOT NULL,
           deleted_at DATETIME,
-          is_active BOOLEAN NOT NULL DEFAULT 1
+          is_active BOOLEAN NOT NULL DEFAULT 1,
+          is_favorite BOOLEAN NOT NULL DEFAULT 0
         )
       ''');
 
@@ -306,4 +375,132 @@ LazyDatabase _openConnection() {
       rethrow;
     }
   });
+}
+
+// DAO para outfits
+@DriftAccessor(tables: [Outfits, OutfitsGarments, Garments])
+class OutfitsDao extends DatabaseAccessor<AppDatabase> with _$OutfitsDaoMixin {
+  OutfitsDao(AppDatabase db) : super(db);
+
+  /// Obtiene todos los outfits activos
+  Future<List<Outfit>> getAllOutfits() async {
+    try {
+      print('OutfitsDAO: Getting all outfits');
+      final outfitsList = await (select(outfits)
+            ..where((tbl) => tbl.isActive.equals(true))
+            ..orderBy([(tbl) => OrderingTerm.desc(tbl.createdAt)]))
+          .get();
+      print('OutfitsDAO: Found ${outfitsList.length} outfits');
+      return outfitsList;
+    } catch (e, stackTrace) {
+      print('OutfitsDAO: Error getting outfits: $e');
+      print('OutfitsDAO: Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  /// Obtiene un outfit por ID con sus prendas
+  Future<Outfit?> getOutfitById(int outfitId) async {
+    try {
+      print('OutfitsDAO: Getting outfit by ID: $outfitId');
+      final outfit = await (select(outfits)
+            ..where((tbl) =>
+                tbl.outfitId.equals(outfitId) & tbl.isActive.equals(true)))
+          .getSingleOrNull();
+      print('OutfitsDAO: Found outfit: ${outfit?.name}');
+      return outfit;
+    } catch (e, stackTrace) {
+      print('OutfitsDAO: Error getting outfit by ID: $e');
+      print('OutfitsDAO: Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  /// Obtiene las prendas de un outfit
+  Future<List<OutfitsGarment>> getOutfitGarments(int outfitId) async {
+    try {
+      print('OutfitsDAO: Getting garments for outfit: $outfitId');
+      final outfitGarments = await (select(outfitsGarments)
+            ..where((tbl) =>
+                tbl.outfitId.equals(outfitId) & tbl.isActive.equals(true)))
+          .get();
+      print('OutfitsDAO: Found ${outfitGarments.length} garments for outfit');
+      return outfitGarments;
+    } catch (e, stackTrace) {
+      print('OutfitsDAO: Error getting outfit garments: $e');
+      print('OutfitsDAO: Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  /// Inserta un nuevo outfit
+  Future<int> insertOutfit(OutfitsCompanion outfit) async {
+    try {
+      print('OutfitsDAO: Inserting outfit: ${outfit.name.value}');
+      final outfitId = await into(outfits).insert(outfit);
+      print('OutfitsDAO: Outfit inserted with ID: $outfitId');
+      return outfitId;
+    } catch (e, stackTrace) {
+      print('OutfitsDAO: Error inserting outfit: $e');
+      print('OutfitsDAO: Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  /// Inserta prendas para un outfit
+  Future<void> insertOutfitGarments(
+      List<OutfitsGarmentsCompanion> outfitGarments) async {
+    try {
+      print('OutfitsDAO: Inserting ${outfitGarments.length} outfit garments');
+      await batch((batch) {
+        batch.insertAll(outfitsGarments, outfitGarments);
+      });
+      print('OutfitsDAO: Outfit garments inserted successfully');
+    } catch (e, stackTrace) {
+      print('OutfitsDAO: Error inserting outfit garments: $e');
+      print('OutfitsDAO: Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  /// Actualiza un outfit
+  Future<void> updateOutfit(OutfitsCompanion outfit) async {
+    try {
+      print('OutfitsDAO: Updating outfit: ${outfit.outfitId.value}');
+      await (update(outfits)
+            ..where((tbl) => tbl.outfitId.equals(outfit.outfitId.value!)))
+          .write(outfit);
+      print('OutfitsDAO: Outfit updated successfully');
+    } catch (e, stackTrace) {
+      print('OutfitsDAO: Error updating outfit: $e');
+      print('OutfitsDAO: Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  /// Elimina un outfit (soft delete)
+  Future<void> softDeleteOutfit(int outfitId) async {
+    try {
+      print('OutfitsDAO: Soft deleting outfit: $outfitId');
+      await (update(outfits)..where((tbl) => tbl.outfitId.equals(outfitId)))
+          .write(OutfitsCompanion(
+        isActive: const Value(false),
+        deletedAt: Value(DateTime.now()),
+      ));
+
+      // También eliminar las prendas del outfit
+      await (update(outfitsGarments)
+            ..where((tbl) => tbl.outfitId.equals(outfitId)))
+          .write(OutfitsGarmentsCompanion(
+        isActive: const Value(false),
+        deletedAt: Value(DateTime.now()),
+      ));
+
+      print('OutfitsDAO: Outfit soft deleted successfully');
+    } catch (e, stackTrace) {
+      print('OutfitsDAO: Error soft deleting outfit: $e');
+      print('OutfitsDAO: Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
 }

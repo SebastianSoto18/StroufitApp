@@ -6,4 +6,9 @@ class Categories extends Table {
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
+  RealColumn get scale => real().withDefault(const Constant(1.0))();
+  RealColumn get positionX => real().withDefault(const Constant(0.0))();
+  RealColumn get positionY => real().withDefault(const Constant(0.0))();
+  RealColumn get rotation => real().withDefault(const Constant(0.0))();
 }

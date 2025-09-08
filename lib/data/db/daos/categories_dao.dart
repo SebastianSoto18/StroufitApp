@@ -66,4 +66,25 @@ class CategoryDao extends DatabaseAccessor<AppDatabase>
       rethrow;
     }
   }
+
+  /// Actualiza la posición y escala de una categoría
+  Future<void> updateCategoryPosition(int categoryId, double scale,
+      double positionX, double positionY, double rotation) async {
+    try {
+      print('CategoryDAO: Updating position for category: $categoryId');
+      await (update(categories)
+            ..where((tbl) => tbl.categoryId.equals(categoryId)))
+          .write(CategoriesCompanion(
+        scale: Value(scale),
+        positionX: Value(positionX),
+        positionY: Value(positionY),
+        rotation: Value(rotation),
+      ));
+      print('CategoryDAO: Position updated successfully');
+    } catch (e, stackTrace) {
+      print('CategoryDAO: Error updating position: $e');
+      print('CategoryDAO: Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
 }

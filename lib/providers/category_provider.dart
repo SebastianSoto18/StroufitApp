@@ -9,6 +9,8 @@ import '../domain/use_cases/categories/deleteCategory.dart';
 import '../domain/use_cases/categories/deleteCategoryWithCascade.dart';
 import '../domain/use_cases/categories/getAllCategories.dart';
 import '../domain/use_cases/categories/updateCategory.dart';
+import '../domain/use_cases/categories/toggleFavorite.dart';
+import '../domain/use_cases/categories/updateCategoryPosition.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   return AppDatabase();
@@ -101,4 +103,14 @@ final softDeleteCategoryWithCascadeProvider =
 final updateCategoryUseCaseProvider = Provider((ref) {
   final repository = ref.watch(categoryRepositoryProvider);
   return UpdateCategory(repository);
+});
+
+final toggleFavoriteUseCaseProvider = Provider((ref) {
+  final repository = ref.watch(categoryRepositoryProvider);
+  return ToggleFavorite(repository);
+});
+
+final updateCategoryPositionUseCaseProvider = Provider((ref) {
+  final repository = ref.watch(categoryRepositoryProvider);
+  return UpdateCategoryPosition(repository);
 });

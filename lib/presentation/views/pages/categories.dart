@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:another_flushbar/flushbar.dart';
-import 'package:stroufitapp/domain/helpers/category_helpers.dart';
 import 'package:stroufitapp/domain/use_cases/categories/createCategory.dart';
 
 import '../../../domain/entities/category.dart';
 import '../../../providers/category_provider.dart';
+import '../../../providers/garment_provider.dart';
 import '../../../theme/theme.dart';
 import '../../widgets/category_bottom_sheet.dart';
 import '../../widgets/create_category_form.dart';
@@ -160,46 +160,65 @@ class Categories extends ConsumerWidget {
                                                       .titleMedium),
                                             ],
                                           ),
-                                          PopupMenuButton<String>(
-                                            color: Colors.white,
-                                            icon: const Icon(Icons.more_vert),
-                                            onSelected: (value) {
-                                              if (value == 'edit') {
-                                                _showEditCategoryDialog(
-                                                    context, ref, category);
-                                              } else if (value == 'delete') {
-                                                _showDeleteCategoryDialog(
-                                                    context, ref, category);
-                                              }
-                                            },
-                                            itemBuilder: (context) => [
-                                              const PopupMenuItem(
-                                                value: 'edit',
-                                                child: Row(
-                                                  children: [
-                                                    Icon(Icons.edit,
-                                                        color: Colors.blue),
-                                                    SizedBox(width: 8),
-                                                    Text('Editar',
-                                                        style: TextStyle(
-                                                            fontFamily:
-                                                                'Poppins')),
-                                                  ],
+                                          Row(
+                                            children: [
+                                              IconButton(
+                                                onPressed: () =>
+                                                    _toggleFavorite(
+                                                        context, ref, category),
+                                                icon: Icon(
+                                                  category.isFavorite
+                                                      ? Icons.favorite
+                                                      : Icons.favorite_border,
+                                                  color: category.isFavorite
+                                                      ? Colors.red
+                                                      : Colors.grey,
                                                 ),
                                               ),
-                                              const PopupMenuItem(
-                                                value: 'delete',
-                                                child: Row(
-                                                  children: [
-                                                    Icon(Icons.delete,
-                                                        color: Colors.red),
-                                                    SizedBox(width: 8),
-                                                    Text('Eliminar',
-                                                        style: TextStyle(
-                                                            fontFamily:
-                                                                'Poppins')),
-                                                  ],
-                                                ),
+                                              PopupMenuButton<String>(
+                                                color: Colors.white,
+                                                icon:
+                                                    const Icon(Icons.more_vert),
+                                                onSelected: (value) {
+                                                  if (value == 'edit') {
+                                                    _showEditCategoryDialog(
+                                                        context, ref, category);
+                                                  } else if (value ==
+                                                      'delete') {
+                                                    _showDeleteCategoryDialog(
+                                                        context, ref, category);
+                                                  }
+                                                },
+                                                itemBuilder: (context) => [
+                                                  const PopupMenuItem(
+                                                    value: 'edit',
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(Icons.edit,
+                                                            color: Colors.blue),
+                                                        SizedBox(width: 8),
+                                                        Text('Editar',
+                                                            style: TextStyle(
+                                                                fontFamily:
+                                                                    'Poppins')),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  const PopupMenuItem(
+                                                    value: 'delete',
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(Icons.delete,
+                                                            color: Colors.red),
+                                                        SizedBox(width: 8),
+                                                        Text('Eliminar',
+                                                            style: TextStyle(
+                                                                fontFamily:
+                                                                    'Poppins')),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
@@ -227,11 +246,11 @@ class Categories extends ConsumerWidget {
       context: context,
       builder: (context) {
         return CreateCategoryForm(
-          onSubmit: (name) async {
+          onSubmit: (name, isFavorite) async {
             try {
               print('UI: Starting category creation for: $name');
 
-              await insertCategory.execute(name);
+              await insertCategory.execute(name, isFavorite: isFavorite);
 
               print(
                   'UI: Category created successfully, showing success message');
@@ -408,6 +427,10 @@ class Categories extends ConsumerWidget {
       // Invalidar la lista de categorías
       ref.invalidate(categoryListProvider);
 
+      // Invalidar cache de la categoría eliminada
+      final cacheService = ref.read(garmentCacheServiceProvider);
+      cacheService.invalidateCategoryCache(category.categoryId);
+
       // Cerrar indicador de carga
       if (Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
@@ -534,5 +557,40 @@ class Categories extends ConsumerWidget {
         opaque: false,
       ),
     );
+  }
+
+  void _toggleFavorite(
+      BuildContext context, WidgetRef ref, CategoryEntity category) async {
+    try {
+      final toggleFavorite = ref.read(toggleFavoriteUseCaseProvider);
+      await toggleFavorite.execute(category.categoryId, !category.isFavorite);
+
+      // Invalidar la lista de categorías para refrescar la UI
+      ref.invalidate(categoryListProvider);
+
+      // Mostrar mensaje de éxito
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(category.isFavorite
+              ? 'Categoría removida de favoritos'
+              : 'Categoría agregada a favoritos'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
+        ),
+      );
+    } catch (e) {
+      // Mostrar mensaje de error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al actualizar favoritos: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
+        ),
+      );
+    }
   }
 }
