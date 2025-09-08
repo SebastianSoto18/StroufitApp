@@ -13,6 +13,9 @@ class CategoryBottomSheet extends ConsumerStatefulWidget {
       onGarmentAdded; // Callback para cuando se agrega una prenda exitosamente
   final Function(String)?
       onGarmentError; // Callback para errores al agregar prenda
+  final bool isReadOnly; // Modo solo lectura
+  final Function(String)?
+      onGarmentSelected; // Callback para cuando se selecciona una prenda en modo solo lectura
 
   const CategoryBottomSheet({
     super.key,
@@ -20,6 +23,8 @@ class CategoryBottomSheet extends ConsumerStatefulWidget {
     this.onImageSelected,
     this.onGarmentAdded,
     this.onGarmentError,
+    this.isReadOnly = false,
+    this.onGarmentSelected,
   });
 
   @override
@@ -94,9 +99,18 @@ class _CategoryBottomSheetState extends ConsumerState<CategoryBottomSheet> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    // Botones según el estado de selección
-                    if (hasSelection) ...[
-                      // Botón de cancelar selección
+                    // Botones según el modo y estado de selección
+                    if (widget.isReadOnly) ...[
+                      // Modo solo lectura - solo botón de cerrar
+                      IconButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        icon: const Icon(Icons.close),
+                        tooltip: 'Cerrar',
+                      ),
+                    ] else if (hasSelection) ...[
+                      // Modo edición con selección - botón de cancelar
                       TextButton(
                         onPressed: () {
                           ref
@@ -106,7 +120,7 @@ class _CategoryBottomSheetState extends ConsumerState<CategoryBottomSheet> {
                         child: const Text('Cancelar'),
                       ),
                     ] else ...[
-                      // Botón de agregar prenda
+                      // Modo edición sin selección - botón de agregar prenda
                       ElevatedButton(
                         onPressed: () {
                           _showPhotoOptions(context);
@@ -135,7 +149,11 @@ class _CategoryBottomSheetState extends ConsumerState<CategoryBottomSheet> {
               Expanded(
                 child: SizedBox(
                   height: 400, // Altura fija para el grid
-                  child: GarmentGrid(categoryId: widget.category.categoryId),
+                  child: GarmentGrid(
+                    categoryId: widget.category.categoryId,
+                    isReadOnly: widget.isReadOnly,
+                    onGarmentSelected: widget.onGarmentSelected,
+                  ),
                 ),
               ),
             ],

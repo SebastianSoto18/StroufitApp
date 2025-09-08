@@ -7,14 +7,24 @@ import 'optimized_garment_card.dart';
 
 class GarmentGrid extends ConsumerWidget {
   final int categoryId;
-  const GarmentGrid({super.key, required this.categoryId});
+  final bool isReadOnly;
+  final Function(String)? onGarmentSelected;
+
+  const GarmentGrid({
+    super.key,
+    required this.categoryId,
+    this.isReadOnly = false,
+    this.onGarmentSelected,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final garmentCategoriesAsync =
         ref.watch(garmentCategoriesByCategoryProvider(categoryId));
-    final hasSelection = ref.watch(hasSelectedGarmentsProvider);
-    final selectedCount = ref.watch(selectedGarmentsCountProvider);
+    final hasSelection =
+        isReadOnly ? false : ref.watch(hasSelectedGarmentsProvider);
+    final selectedCount =
+        isReadOnly ? 0 : ref.watch(selectedGarmentsCountProvider);
 
     return garmentCategoriesAsync.when(
       data: (garmentCategories) {
@@ -41,11 +51,13 @@ class GarmentGrid extends ConsumerWidget {
                 return OptimizedGarmentCard(
                   garmentCategory: garmentCategory,
                   isSelectionMode: hasSelection,
+                  isReadOnly: isReadOnly,
+                  onGarmentSelected: onGarmentSelected,
                 );
               },
             ),
-            // Botón flotante de eliminación
-            if (hasSelection)
+            // Botón flotante de eliminación (solo en modo edición)
+            if (hasSelection && !isReadOnly)
               Positioned(
                 bottom: 80, // Aumentado de 16 a 80 para mayor separación
                 right: 16,

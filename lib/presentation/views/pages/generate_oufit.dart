@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stroufitapp/domain/entities/category.dart';
 import 'package:stroufitapp/domain/entities/garment_category.dart';
+import 'package:stroufitapp/domain/entities/garment.dart';
 import 'package:stroufitapp/domain/use_cases/outfits/cachedGenerateOutfit.dart';
 import 'package:stroufitapp/providers/category_provider.dart';
 import 'package:stroufitapp/providers/garment_provider.dart';
 import 'package:stroufitapp/presentation/widgets/draggable_outfit_container.dart';
+import 'package:stroufitapp/presentation/widgets/category_bottom_sheet.dart';
 
 class GenerateOufit extends ConsumerStatefulWidget {
   const GenerateOufit({super.key});
@@ -136,6 +138,95 @@ class _GenerateOufitState extends ConsumerState<GenerateOufit>
     });
     print('After toggle - Category: $categoryId, Locked: $isLocked');
     print('Current locked garments: $_lockedGarments');
+  }
+
+  void _onGarmentSelected(String imagePath) {
+    // Encontrar la categoría de la prenda seleccionada
+    final garmentCategory = _generatedOutfit.firstWhere(
+      (garment) => garment.garment.imagePath == imagePath,
+      orElse: () => _generatedOutfit.first,
+    );
+
+    // Mostrar el CategoryBottomSheet en modo solo lectura
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CategoryBottomSheet(
+        category: _categories!.firstWhere(
+          (cat) => cat.categoryId == garmentCategory.categoryId,
+        ),
+        isReadOnly: true,
+        onGarmentSelected: (selectedImagePath) {
+          // Reemplazar la prenda actual con la seleccionada
+          _replaceGarment(garmentCategory.categoryId, selectedImagePath);
+          Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
+  void _replaceGarment(int categoryId, String newImagePath) {
+    print(
+        'Replacing garment for category $categoryId with new path: $newImagePath');
+
+    // Encontrar el índice de la prenda actual en _generatedOutfit
+    final currentIndex = _generatedOutfit.indexWhere(
+      (garment) => garment.categoryId == categoryId,
+    );
+
+    if (currentIndex == -1) {
+      print('Error: Category $categoryId not found in generated outfit');
+      return;
+    }
+
+    // Obtener la prenda actual para mantener las posiciones guardadas
+    final currentGarment = _generatedOutfit[currentIndex];
+
+    // Crear una nueva GarmentEntity con la nueva imagen
+    final newGarment = GarmentEntity(
+      garmentId: currentGarment.garment.garmentId,
+      imagePath: newImagePath,
+      createdAt: currentGarment.garment.createdAt,
+      isActive: currentGarment.garment.isActive,
+      deletedAt: currentGarment.garment.deletedAt,
+    );
+
+    // Crear una nueva GarmentCategoryEntity con la nueva prenda
+    final newGarmentCategory = GarmentCategoryEntity(
+      garmentCategoriesId: currentGarment.garmentCategoriesId,
+      categoryId: currentGarment.categoryId,
+      garmentId: currentGarment.garmentId,
+      createdAt: currentGarment.createdAt,
+      isActive: currentGarment.isActive,
+      deletedAt: currentGarment.deletedAt,
+      garment: newGarment,
+    );
+
+    // Actualizar la lista _generatedOutfit
+    setState(() {
+      _generatedOutfit[currentIndex] = newGarmentCategory;
+
+      // Incrementar el contador de reset para forzar recreación del widget
+      _resetCounter++;
+
+      // Si hay posiciones guardadas para esta categoría, mantenerlas
+      if (_categoryPositions.containsKey(categoryId)) {
+        // Las posiciones ya están guardadas, no necesitamos hacer nada más
+        print('Maintaining saved positions for category $categoryId');
+      } else {
+        // Si no hay posiciones guardadas, usar las posiciones por defecto
+        _categoryPositions[categoryId] = {
+          'scale': 1.0,
+          'positionX': 0.0,
+          'positionY': 0.0,
+          'rotation': 0.0,
+        };
+        print('Using default positions for category $categoryId');
+      }
+    });
+
+    print('Garment replaced successfully for category $categoryId');
   }
 
   @override
@@ -563,6 +654,7 @@ class _GenerateOufitState extends ConsumerState<GenerateOufit>
       },
       onPositionChanged: _onPositionChanged,
       onToggleLock: _onToggleLock,
+      onGarmentSelected: _onGarmentSelected, // Add garment selection callback
     );
   }
 

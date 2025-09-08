@@ -14,6 +14,8 @@ class DraggableOutfitContainer extends StatefulWidget {
   final Map<int, Map<String, double>>? savedPositions;
   final Map<int, bool>? lockedGarments;
   final Function(int categoryId, bool isLocked)? onToggleLock;
+  final Function(String)?
+      onGarmentSelected; // Callback para selección de prenda
 
   const DraggableOutfitContainer({
     super.key,
@@ -27,6 +29,7 @@ class DraggableOutfitContainer extends StatefulWidget {
     this.savedPositions,
     this.lockedGarments,
     this.onToggleLock,
+    this.onGarmentSelected,
   });
 
   @override
@@ -146,6 +149,8 @@ class _DraggableOutfitContainerState extends State<DraggableOutfitContainer> {
             widget.onToggleLock?.call(garment.categoryId,
                 !(widget.lockedGarments?[garment.categoryId] ?? false));
           },
+          onGarmentSelected:
+              widget.onGarmentSelected, // Pass garment selection callback
         ),
       );
     }
