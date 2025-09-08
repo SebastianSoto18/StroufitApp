@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/custom_styles.dart';
 
 class CreateCategoryForm extends StatefulWidget {
-  final void Function(String name) onSubmit;
+  final void Function(String name, bool isFavorite) onSubmit;
 
   const CreateCategoryForm({super.key, required this.onSubmit});
 
@@ -15,6 +15,7 @@ class _CreateCategoryFormState extends State<CreateCategoryForm> {
   final _formKey = GlobalKey<FormState>();
   final _controller = TextEditingController();
   bool _isFormValid = false;
+  bool _isFavorite = false;
 
   @override
   void initState() {
@@ -46,16 +47,33 @@ class _CreateCategoryFormState extends State<CreateCategoryForm> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       content: Form(
         key: _formKey,
-        autovalidateMode: AutovalidateMode.onUserInteraction, // <-- valida mientras escribes
-        child: TextFormField(
-          controller: _controller,
-          decoration: const InputDecoration(labelText: 'Nombre'),
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Por favor ingresa un nombre';
-            }
-            return null;
-          },
+        autovalidateMode:
+            AutovalidateMode.onUserInteraction, // <-- valida mientras escribes
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _controller,
+              decoration: const InputDecoration(labelText: 'Nombre'),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Por favor ingresa un nombre';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            CheckboxListTile(
+              title: const Text('Marcar como favorito'),
+              value: _isFavorite,
+              onChanged: (value) {
+                setState(() {
+                  _isFavorite = value ?? false;
+                });
+              },
+              controlAffinity: ListTileControlAffinity.leading,
+            ),
+          ],
         ),
       ),
       actions: [
@@ -67,9 +85,9 @@ class _CreateCategoryFormState extends State<CreateCategoryForm> {
         ElevatedButton(
           onPressed: _isFormValid
               ? () {
-            widget.onSubmit(_controller.text.trim());
-            Navigator.of(context).pop(); // Cierra el popup
-          }
+                  widget.onSubmit(_controller.text.trim(), _isFavorite);
+                  Navigator.of(context).pop(); // Cierra el popup
+                }
               : null, // <-- deshabilita si el form no es válido
           style: acceptButtonStyle,
           child: const Text('Guardar'),

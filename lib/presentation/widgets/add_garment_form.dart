@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stroufitapp/providers/photo_provider.dart';
+import 'package:stroufitapp/providers/garment_provider.dart';
 import 'package:stroufitapp/domain/helpers/rembg_helper.dart';
 
 class AddGarmentForm extends ConsumerStatefulWidget {
@@ -142,6 +143,10 @@ class _AddGarmentFormState extends ConsumerState<AddGarmentForm> {
       ref
           .read(garmentCategoriesNotifierProvider.notifier)
           .invalidateGarmentCategories(widget.categoryId);
+
+      // Invalidar cache de la categoría cuando se agrega una nueva foto
+      final cacheService = ref.read(garmentCacheServiceProvider);
+      cacheService.invalidateCategoryCache(widget.categoryId);
 
       // Cerrar el diálogo primero
       if (mounted) {

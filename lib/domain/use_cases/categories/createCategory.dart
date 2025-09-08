@@ -8,14 +8,15 @@ class CreateCategory {
 
   CreateCategory(this._categoryRepository);
 
-  Future<void> execute(String name) async {
+  Future<void> execute(String name, {bool isFavorite = false}) async {
     try {
-      print('Creating category with name: $name');
+      print('Creating category with name: $name, isFavorite: $isFavorite');
 
       final category = CategoriesCompanion(
         name: Value(name),
         createdAt: Value(DateTime.now()),
         isActive: Value(true),
+        isFavorite: Value(isFavorite),
       );
 
       print('Category companion created successfully');
