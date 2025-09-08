@@ -6,6 +6,8 @@ class DraggableGarmentWidget extends StatefulWidget {
   final GarmentCategoryEntity garmentCategory;
   final VoidCallback? onTap;
   final VoidCallback? onDoubleTap;
+  final Function(String)?
+      onGarmentSelected; // Callback para cuando se selecciona una prenda
   final double initialX;
   final double initialY;
   final double initialWidth;
@@ -24,6 +26,7 @@ class DraggableGarmentWidget extends StatefulWidget {
     required this.garmentCategory,
     this.onTap,
     this.onDoubleTap,
+    this.onGarmentSelected,
     this.initialX = 0.0,
     this.initialY = 0.0,
     this.initialWidth = 120.0,
@@ -129,7 +132,13 @@ class _DraggableGarmentWidgetState extends State<DraggableGarmentWidget> {
           // Notificar fin de interacción
           widget.onInteractionEnd?.call();
         },
-        onTap: widget.onTap,
+        onTap: () {
+          widget.onTap?.call();
+          // Si hay callback de selección de prenda, llamarlo
+          if (widget.onGarmentSelected != null) {
+            widget.onGarmentSelected!(widget.garmentCategory.garment.imagePath);
+          }
+        },
         onDoubleTap: () {
           print(
               'Double tap detected on garment ${widget.garmentCategory.categoryId}');

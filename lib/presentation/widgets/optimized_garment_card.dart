@@ -9,11 +9,15 @@ import 'dart:io';
 class OptimizedGarmentCard extends ConsumerWidget {
   final GarmentCategoryEntity garmentCategory;
   final bool isSelectionMode;
+  final bool isReadOnly;
+  final Function(String)? onGarmentSelected;
 
   const OptimizedGarmentCard({
     super.key,
     required this.garmentCategory,
     this.isSelectionMode = false,
+    this.isReadOnly = false,
+    this.onGarmentSelected,
   });
 
   @override
@@ -24,7 +28,7 @@ class OptimizedGarmentCard extends ConsumerWidget {
 
     return RepaintBoundary(
       child: GestureDetector(
-        onLongPress: isSelectionMode
+        onLongPress: (isSelectionMode || isReadOnly)
             ? null
             : () {
                 // Activar modo de selección y seleccionar esta prenda
@@ -32,14 +36,19 @@ class OptimizedGarmentCard extends ConsumerWidget {
                     .read(garmentSelectionProvider.notifier)
                     .selectGarment(garmentCategory.garment.garmentId);
               },
-        onTap: isSelectionMode
+        onTap: isReadOnly
             ? () {
-                // Alternar selección en modo de selección
-                ref
-                    .read(garmentSelectionProvider.notifier)
-                    .toggleSelection(garmentCategory.garment.garmentId);
+                // Modo solo lectura - seleccionar prenda y devolver ruta
+                onGarmentSelected?.call(garmentCategory.garment.imagePath);
               }
-            : null,
+            : isSelectionMode
+                ? () {
+                    // Alternar selección en modo de selección
+                    ref
+                        .read(garmentSelectionProvider.notifier)
+                        .toggleSelection(garmentCategory.garment.garmentId);
+                  }
+                : null,
         child: Card(
           elevation: isSelected ? 6 : 3,
           shape: RoundedRectangleBorder(
